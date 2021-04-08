@@ -16,6 +16,8 @@ type Context struct {
 	// 请求路径和请求方式
 	Path string
 	Method string
+	// 存放路由参数
+	Params map[string]string
 	// 返回状态码
 	StatusCode int
 }
@@ -32,6 +34,11 @@ func NewContext(writer http.ResponseWriter, r *http.Request)*Context{
 // 返回 post form的value
 func (c *Context)PostForm(key string)string{
 	return c.Req.FormValue(key)
+}
+
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
 }
 
 func (c *Context)Query(key string)string{
