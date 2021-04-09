@@ -12,27 +12,37 @@ type H map[string]interface{}
 type Context struct {
 	// request和response-writer
 	Writer http.ResponseWriter
-	Req *http.Request
+	Req    *http.Request
 	// 请求路径和请求方式
-	Path string
+	Path   string
 	Method string
 	// 存放路由参数
 	Params map[string]string
 	// 返回状态码
 	StatusCode int
+	// middlewares
+	handlers []HandlerFunc
+	index    int
 }
 
-func NewContext(writer http.ResponseWriter, r *http.Request)*Context{
+func NewContext(writer http.ResponseWriter, r *http.Request) *Context {
 	return &Context{
-		Writer:     writer,
-		Req:        r,
-		Path:       r.URL.Path,
-		Method:     r.Method,
+		Writer: writer,
+		Req:    r,
+		Path:   r.URL.Path,
+		Method: r.Method,
+		index:  -1,
 	}
 }
 
+func (c *Context) Next()  {
+	c.index++
+	size := len(c.handlers)
+
+}
+
 // 返回 post form的value
-func (c *Context)PostForm(key string)string{
+func (c *Context) PostForm(key string) string {
 	return c.Req.FormValue(key)
 }
 
@@ -41,17 +51,17 @@ func (c *Context) Param(key string) string {
 	return value
 }
 
-func (c *Context)Query(key string)string{
+func (c *Context) Query(key string) string {
 	return c.Req.URL.Query().Get(key)
 }
 
-func (c *Context)Status(status int){
+func (c *Context) Status(status int) {
 	c.StatusCode = status
 	c.Writer.WriteHeader(status)
 }
 
-func (c *Context)SetHeader(key,value string){
-	c.Req.Header.Set(key,value)
+func (c *Context) SetHeader(key, value string) {
+	c.Req.Header.Set(key, value)
 }
 
 func (c *Context) String(code int, format string, values ...interface{}) {
