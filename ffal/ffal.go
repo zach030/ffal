@@ -2,6 +2,7 @@ package ffal
 
 import (
 	"net/http"
+	"strings"
 )
 
 const (
@@ -14,15 +15,22 @@ type HandlerFunc func(c *Context)
 
 // 实现handler接口
 type Engine struct {
-	*RouterGroup
+	mainGroup *RouterGroup          // engine itself : main group
 	router *router
 	groups []*RouterGroup // store all groups
 }
 
+type RouterGroup struct {
+	prefix      string        // prefix for a router-group
+	middlewares []HandlerFunc // middlewares for current router group
+	parent      *RouterGroup
+	engine      *Engine
+}
+
 func New() *Engine {
 	engine := &Engine{router: newRouter()}
-	engine.RouterGroup = &RouterGroup{engine: engine}
-	engine.groups = []*RouterGroup{engine.RouterGroup}
+	engine.mainGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.mainGroup}
 	return engine
 }
 
@@ -48,7 +56,16 @@ func (group *RouterGroup) Run(addr string) (err error) {
 
 // 实现接口
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		// 遍历全部的group，找到当前url对应的组内的全部中间件，放入context中线性组织起来
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	c := NewContext(w, req)
+	// 将全部的middleware 放到context中
+	c.handlers = middlewares
 	engine.router.handle(c)
 }
 
@@ -64,9 +81,7 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	return newGroup
 }
 
-type RouterGroup struct {
-	prefix      string        // prefix for a router-group
-	middlewares []HandlerFunc // middlewares for current router group
-	parent      *RouterGroup
-	engine      *Engine
+// 使用中间件
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
 }

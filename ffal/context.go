@@ -22,6 +22,7 @@ type Context struct {
 	StatusCode int
 	// middlewares
 	handlers []HandlerFunc
+	// 记录当前执行到第几个中间件
 	index    int
 }
 
@@ -35,10 +36,13 @@ func NewContext(writer http.ResponseWriter, r *http.Request) *Context {
 	}
 }
 
-func (c *Context) Next()  {
+func (c *Context) Next() {
 	c.index++
 	size := len(c.handlers)
-
+	for ; c.index < size; c.index++ {
+		// 将执行权交给下一个中间件
+		c.handlers[c.index](c)
+	}
 }
 
 // 返回 post form的value
