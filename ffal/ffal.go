@@ -15,7 +15,7 @@ type HandlerFunc func(c *Context)
 
 // 实现handler接口
 type Engine struct {
-	mainGroup *RouterGroup          // engine itself : main group
+	*RouterGroup          // engine itself : main group
 	router *router
 	groups []*RouterGroup // store all groups
 }
@@ -29,8 +29,8 @@ type RouterGroup struct {
 
 func New() *Engine {
 	engine := &Engine{router: newRouter()}
-	engine.mainGroup = &RouterGroup{engine: engine}
-	engine.groups = []*RouterGroup{engine.mainGroup}
+	mainGroup := &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{mainGroup}
 	return engine
 }
 
@@ -41,17 +41,17 @@ func (group *RouterGroup) addRoute(method, pattern string, handler HandlerFunc) 
 
 // GET请求
 func (group *RouterGroup) GET(pattern string, handlerFunc HandlerFunc) {
-	group.engine.router.addRoute(GET, pattern, handlerFunc)
+	group.addRoute(GET, pattern, handlerFunc)
 }
 
 // POST请求
 func (group *RouterGroup) POST(pattern string, handlerFunc HandlerFunc) {
-	group.engine.router.addRoute(POST, pattern, handlerFunc)
+	group.addRoute(POST, pattern, handlerFunc)
 }
 
 // run方法
-func (group *RouterGroup) Run(addr string) (err error) {
-	return http.ListenAndServe(addr, group.engine)
+func (engine *Engine) Run(addr string) (err error) {
+	return http.ListenAndServe(addr, engine)
 }
 
 // 实现接口
